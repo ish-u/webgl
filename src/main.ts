@@ -3,14 +3,24 @@ let vertexShaderSource = `#version 300 es
 
 // an attribute is an input (in) to a vertex shader.
 // It will recieve data from a buffer
-in vec4 a_position;
+in vec2 a_position;
+
+uniform vec2 u_resolution;
 
 // all shaders have a main function
 void main(){
+    // Convert position from pixels to 0.0 to 1.0
+    vec2 zeroToOne = a_position / u_resolution;
     
+    // Convert from 0->1 to 0->2
+    vec2 zeroToTwo = zeroToOne * 2.0;
+
+    // Convert from 0->2 to -1->+1 (clip space)
+    vec2 clipSpace = zeroToTwo - 1.0;
+  
     // gl_Position is a special variable a vertex shader
     // is responsible for setting
-    gl_Position = a_position;
+    gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
 }
 `;
 
@@ -131,11 +141,16 @@ function main() {
 
   // Attributes
   let positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+  let resolutionUniformLocation = gl.getUniformLocation(
+    program,
+    "u_resolution"
+  );
 
   // Buffers -> create a buffer -> bind it -> set buffer data and usage
   let positionBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  let positions = [0, 0, 0, 0.5, 0.7, 0];
+  // let positions = [0, 0, 0, 0.5, 0.7, 0]; // Triangle
+  let positions = [10, 20, 80, 20, 10, 30, 10, 30, 80, 20, 80, 30]; // Rectangle using two Triangles
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
   // State -> Create vertex array object (sort of a lookup) -> bind it to current context
@@ -175,11 +190,15 @@ function main() {
   // bind the attribute/buffer set we want
   gl.bindVertexArray(vao);
 
+  // Pass in the canvas resolution so we can convert from
+  // pixels to clip space in the shader
+  gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
+
   // execute program
   {
     let primitiveType = gl.TRIANGLES;
     let offset = 0;
-    let count = 3;
+    let count = 6;
     gl.drawArrays(primitiveType, offset, count);
   }
 }
