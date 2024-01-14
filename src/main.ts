@@ -110,6 +110,28 @@ function randomInt(range: number) {
   return Math.floor(Math.random() * range);
 }
 
+// Fill the buffer with the values that define a rectangle.
+function setRectangle(
+  gl: WebGL2RenderingContext,
+  x: number,
+  y: number,
+  width: number,
+  height: number
+) {
+  if (!gl) {
+    return;
+  }
+  var x1 = x;
+  var x2 = x + width;
+  var y1 = y;
+  var y2 = y + height;
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array([x1, y1, x2, y1, x1, y2, x1, y2, x2, y1, x2, y2]),
+    gl.STATIC_DRAW
+  );
+}
+
 function drawRectangles(
   gl: WebGL2RenderingContext,
   colorLocation: WebGLUniformLocation | null
@@ -129,17 +151,7 @@ function drawRectangles(
     const width = randomInt(range);
     const height = randomInt(range);
 
-    const x1 = x;
-    const x2 = x + width;
-    const y1 = y;
-    const y2 = y + height;
-
-    // Set random rectangle data to ARRAY_BUFFER - currently positionBuffer
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([x1, y1, x2, y1, x1, y2, x1, y2, x2, y1, x2, y2]),
-      gl.STATIC_DRAW
-    );
+    setRectangle(gl, x, y, width, height);
 
     // Setting color
     gl.uniform4f(colorLocation, Math.random(), Math.random(), Math.random(), 1);
@@ -224,38 +236,93 @@ function main() {
     offset
   );
 
-  // Resize on zoom
-  resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
+  var color = [Math.random(), Math.random(), Math.random(), 1];
 
-  // Clip Space to Canvas Space
-  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+  // Translation Demo
+  let x = 0;
+  let y = 0;
 
-  // Clear the canvas
-  gl.clearColor(0, 0, 0, 0);
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  const xRange: HTMLInputElement = document.createElement("input");
+  xRange.type = "range";
+  xRange.value = "0";
+  xRange.max = gl.canvas.width.toString();
+  const xLabel = document.createElement("div");
+  xLabel.innerHTML = "x : " + xRange.value;
+  const xContainer = document.createElement("div");
+  xContainer.appendChild(xLabel);
+  xContainer.appendChild(xRange);
+  xContainer.style.display = "flex";
+  xRange.style.marginLeft = "8px";
+  xRange.addEventListener("input", (e) => {
+    xLabel.innerHTML = "x: " + (e.target as HTMLInputElement)?.value;
+    x = parseInt((e.target as HTMLInputElement)?.value);
+    drawScene();
+  });
 
-  // use program
-  gl.useProgram(program);
+  const yRange: HTMLInputElement = document.createElement("input");
+  yRange.type = "range";
+  yRange.value = "0";
+  yRange.max = gl.canvas.height.toString();
+  const yLabel = document.createElement("div");
+  yLabel.innerHTML = "y : " + yRange.value;
+  const yContainer = document.createElement("div");
+  yContainer.appendChild(yLabel);
+  yContainer.appendChild(yRange);
+  yContainer.style.display = "flex";
+  yRange.style.marginLeft = "8px";
+  yRange.addEventListener("input", (e) => {
+    yLabel.innerHTML = "y: " + (e.target as HTMLInputElement)?.value;
+    y = parseInt((e.target as HTMLInputElement)?.value);
+    drawScene();
+  });
 
-  // bind the attribute/buffer set we want
-  gl.bindVertexArray(vao);
+  const translationControlContainer = document.createElement("div");
+  translationControlContainer.appendChild(xContainer);
+  translationControlContainer.appendChild(yContainer);
+  translationControlContainer.style.margin = "4px";
 
-  // Pass in the canvas resolution so we can convert from
-  // pixels to clip space in the shader
-  gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
+  document.querySelector("body")?.appendChild(translationControlContainer);
 
-  // setting the color
-  // gl.uniform4f(colorLocation, 0.2, 0.3, 0.4, 1);
+  drawScene();
 
-  // execute program
-  // {
-  //   let primitiveType = gl.TRIANGLES;
-  //   let offset = 0;
-  //   let count = 6;
-  //   gl.drawArrays(primitiveType, offset, count);
-  // }
+  function drawScene() {
+    if (!gl || !program) {
+      return;
+    }
+    // Resize on zoom
+    resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
 
-  drawRectangles(gl, colorLocation);
+    // Clip Space to Canvas Space
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+    // Clear the canvas
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // use program
+    gl.useProgram(program);
+
+    // bind the attribute/buffer set we want
+    gl.bindVertexArray(vao);
+
+    // Pass in the canvas resolution so we can convert from
+    // pixels to clip space in the shader
+    gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
+
+    // Rectangle
+    setRectangle(gl, x, y, 100, 30);
+
+    // setting the color
+    gl.uniform4fv(colorLocation, color);
+
+    // execute program
+    let primitiveType = gl.TRIANGLES;
+    let offset = 0;
+    let count = 6;
+    gl.drawArrays(primitiveType, offset, count);
+
+    // drawRectangles(gl, colorLocation);
+  }
 }
 
 document.addEventListener("DOMContentLoaded", main);
