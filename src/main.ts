@@ -30,12 +30,14 @@ let fragmentShaderSource = `#version 300 es
 // to pick one. highp is a good default. It means "high precision"
 precision highp float;
 
+uniform vec4 u_color;
+
 // we need to declare an output for the fragment shader
 out vec4 outColor;
 
 void main(){
     // Just set the output to a constant reddish-purple
-    outColor = vec4(1, 0, 0.5, 1);
+    outColor = u_color;
 }
 `;
 
@@ -103,6 +105,53 @@ function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement) {
   return needResize;
 }
 
+// Draw Squrares
+function randomInt(range: number) {
+  return Math.floor(Math.random() * range);
+}
+
+function drawRectangles(
+  gl: WebGL2RenderingContext,
+  colorLocation: WebGLUniformLocation | null
+) {
+  if (!colorLocation) {
+    alert("Color uniform is null");
+    return;
+  }
+  if (!gl) {
+    alert("WebGL not initialized");
+    return;
+  }
+  const range = 300;
+  for (let i = 0; i < 50; i++) {
+    const x = randomInt(range);
+    const y = randomInt(range);
+    const width = randomInt(range);
+    const height = randomInt(range);
+
+    const x1 = x;
+    const x2 = x + width;
+    const y1 = y;
+    const y2 = y + height;
+
+    // Set random rectangle data to ARRAY_BUFFER - currently positionBuffer
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([x1, y1, x2, y1, x1, y2, x1, y2, x2, y1, x2, y2]),
+      gl.STATIC_DRAW
+    );
+
+    // Setting color
+    gl.uniform4f(colorLocation, Math.random(), Math.random(), Math.random(), 1);
+
+    // Draw Rectangle
+    let primitiveType = gl.TRIANGLES;
+    let offset = 0;
+    let count = 6;
+    gl.drawArrays(primitiveType, offset, count);
+  }
+}
+
 function main() {
   // get canvas element
   const canvas: HTMLCanvasElement | null = document.querySelector("#canvas");
@@ -145,6 +194,7 @@ function main() {
     program,
     "u_resolution"
   );
+  let colorLocation = gl.getUniformLocation(program, "u_color");
 
   // Buffers -> create a buffer -> bind it -> set buffer data and usage
   let positionBuffer = gl.createBuffer();
@@ -194,13 +244,18 @@ function main() {
   // pixels to clip space in the shader
   gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
 
+  // setting the color
+  // gl.uniform4f(colorLocation, 0.2, 0.3, 0.4, 1);
+
   // execute program
-  {
-    let primitiveType = gl.TRIANGLES;
-    let offset = 0;
-    let count = 6;
-    gl.drawArrays(primitiveType, offset, count);
-  }
+  // {
+  //   let primitiveType = gl.TRIANGLES;
+  //   let offset = 0;
+  //   let count = 6;
+  //   gl.drawArrays(primitiveType, offset, count);
+  // }
+
+  drawRectangles(gl, colorLocation);
 }
 
 document.addEventListener("DOMContentLoaded", main);
