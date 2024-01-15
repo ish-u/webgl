@@ -164,6 +164,59 @@ function drawRectangles(
   }
 }
 
+function setGeometry(gl: WebGL2RenderingContext, x: number, y: number) {
+  var width = 100;
+  var height = 150;
+  var thickness = 30;
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array([
+      // left column
+      x,
+      y,
+      x + thickness,
+      y,
+      x,
+      y + height,
+      x,
+      y + height,
+      x + thickness,
+      y,
+      x + thickness,
+      y + height,
+
+      // top rung
+      x + thickness,
+      y,
+      x + width,
+      y,
+      x + thickness,
+      y + thickness,
+      x + thickness,
+      y + thickness,
+      x + width,
+      y,
+      x + width,
+      y + thickness,
+
+      // middle rung
+      x + thickness,
+      y + thickness * 2,
+      x + (width * 2) / 3,
+      y + thickness * 2,
+      x + thickness,
+      y + thickness * 3,
+      x + thickness,
+      y + thickness * 3,
+      x + (width * 2) / 3,
+      y + thickness * 2,
+      x + (width * 2) / 3,
+      y + thickness * 3,
+    ]),
+    gl.STATIC_DRAW
+  );
+}
+
 function main() {
   // get canvas element
   const canvas: HTMLCanvasElement | null = document.querySelector("#canvas");
@@ -309,8 +362,9 @@ function main() {
     // pixels to clip space in the shader
     gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
 
-    // Rectangle
-    setRectangle(gl, x, y, 100, 30);
+    // // Rectangle
+    // setRectangle(gl, x, y, 100, 30);
+    setGeometry(gl, x, y);
 
     // setting the color
     gl.uniform4fv(colorLocation, color);
@@ -318,7 +372,7 @@ function main() {
     // execute program
     let primitiveType = gl.TRIANGLES;
     let offset = 0;
-    let count = 6;
+    let count = 18;
     gl.drawArrays(primitiveType, offset, count);
 
     // drawRectangles(gl, colorLocation);
