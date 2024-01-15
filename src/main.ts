@@ -10,10 +10,17 @@ uniform vec2 u_resolution;
 // translation to add to position
 uniform vec2 u_translation;
 
+// rotaion
+uniform vec2 u_rotation;
+
 // all shaders have a main function
 void main(){
+  // Rotate the position
+  vec2 rotatedPosition = vec2(a_position.x * u_rotation.y + a_position.y * u_rotation.x,
+                              a_position.y * u_rotation.y - a_position.x * u_rotation.x);  
+
     // Add in the translation
-    vec2 position = a_position + u_translation; 
+    vec2 position = rotatedPosition + u_translation; 
 
     // Convert position from pixels to 0.0 to 1.0
     vec2 zeroToOne = position / u_resolution;
@@ -231,6 +238,7 @@ function main() {
   );
   let colorLocation = gl.getUniformLocation(program, "u_color");
   let translationLocation = gl.getUniformLocation(program, "u_translation");
+  let rotationLocation = gl.getUniformLocation(program, "u_rotation");
 
   // Buffers -> create a buffer -> bind it -> set buffer data and usage
   let positionBuffer = gl.createBuffer();
@@ -301,11 +309,41 @@ function main() {
   });
 
   const translationControlContainer = document.createElement("div");
+  translationControlContainer.innerHTML = "Translation:";
   translationControlContainer.appendChild(xContainer);
   translationControlContainer.appendChild(yContainer);
-  translationControlContainer.style.margin = "4px";
+  translationControlContainer.style.margin = "12px";
+
+  // Rotation demo
+  let rotation = [0, 1];
+  const rotationRange: HTMLInputElement = document.createElement("input");
+  rotationRange.type = "range";
+  rotationRange.value = "0";
+  rotationRange.max = "360";
+  const rotationLabel = document.createElement("div");
+  rotationLabel.innerHTML = "angle: " + rotationRange.value;
+  const rotationContainer = document.createElement("div");
+  rotationContainer.appendChild(rotationLabel);
+  rotationContainer.appendChild(rotationRange);
+  rotationContainer.style.display = "flex";
+  rotationRange.style.marginLeft = "8px";
+  rotationRange.addEventListener("input", (e) => {
+    rotationLabel.innerHTML =
+      "rotation: " + (e.target as HTMLInputElement)?.value;
+    const angleInDegress = parseInt((e.target as HTMLInputElement)?.value);
+    const angleInRadians = (angleInDegress * Math.PI) / 180;
+    rotation[0] = Math.sin(angleInRadians);
+    rotation[1] = Math.cos(angleInRadians);
+    drawScene();
+  });
+
+  const rotationControlContainer = document.createElement("div");
+  rotationControlContainer.innerHTML = "Rotation:";
+  rotationControlContainer.appendChild(rotationContainer);
+  rotationControlContainer.style.margin = "12px";
 
   document.querySelector("body")?.appendChild(translationControlContainer);
+  document.querySelector("body")?.appendChild(rotationControlContainer);
 
   // Set Geometry
   setGeometry(gl);
@@ -339,7 +377,11 @@ function main() {
     // // Rectangle
     // setRectangle(gl, x, y, 100, 30);
 
+    // set the translation
     gl.uniform2fv(translationLocation, [x, y]);
+
+    // set the rotation
+    gl.uniform2fv(rotationLocation, rotation);
 
     // setting the color
     gl.uniform4fv(colorLocation, color);
