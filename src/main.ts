@@ -7,10 +7,16 @@ in vec2 a_position;
 
 uniform vec2 u_resolution;
 
+// translation to add to position
+uniform vec2 u_translation;
+
 // all shaders have a main function
 void main(){
+    // Add in the translation
+    vec2 position = a_position + u_translation; 
+
     // Convert position from pixels to 0.0 to 1.0
-    vec2 zeroToOne = a_position / u_resolution;
+    vec2 zeroToOne = position / u_resolution;
     
     // Convert from 0->1 to 0->2
     vec2 zeroToTwo = zeroToOne * 2.0;
@@ -164,54 +170,18 @@ function drawRectangles(
   }
 }
 
-function setGeometry(gl: WebGL2RenderingContext, x: number, y: number) {
-  var width = 100;
-  var height = 150;
-  var thickness = 30;
+function setGeometry(gl: WebGL2RenderingContext) {
   gl.bufferData(
     gl.ARRAY_BUFFER,
     new Float32Array([
       // left column
-      x,
-      y,
-      x + thickness,
-      y,
-      x,
-      y + height,
-      x,
-      y + height,
-      x + thickness,
-      y,
-      x + thickness,
-      y + height,
+      0, 0, 30, 0, 0, 150, 0, 150, 30, 0, 30, 150,
 
       // top rung
-      x + thickness,
-      y,
-      x + width,
-      y,
-      x + thickness,
-      y + thickness,
-      x + thickness,
-      y + thickness,
-      x + width,
-      y,
-      x + width,
-      y + thickness,
+      30, 0, 100, 0, 30, 30, 30, 30, 100, 0, 100, 30,
 
       // middle rung
-      x + thickness,
-      y + thickness * 2,
-      x + (width * 2) / 3,
-      y + thickness * 2,
-      x + thickness,
-      y + thickness * 3,
-      x + thickness,
-      y + thickness * 3,
-      x + (width * 2) / 3,
-      y + thickness * 2,
-      x + (width * 2) / 3,
-      y + thickness * 3,
+      30, 60, 67, 60, 30, 90, 30, 90, 67, 60, 67, 90,
     ]),
     gl.STATIC_DRAW
   );
@@ -260,6 +230,7 @@ function main() {
     "u_resolution"
   );
   let colorLocation = gl.getUniformLocation(program, "u_color");
+  let translationLocation = gl.getUniformLocation(program, "u_translation");
 
   // Buffers -> create a buffer -> bind it -> set buffer data and usage
   let positionBuffer = gl.createBuffer();
@@ -336,6 +307,9 @@ function main() {
 
   document.querySelector("body")?.appendChild(translationControlContainer);
 
+  // Set Geometry
+  setGeometry(gl);
+
   drawScene();
 
   function drawScene() {
@@ -364,7 +338,8 @@ function main() {
 
     // // Rectangle
     // setRectangle(gl, x, y, 100, 30);
-    setGeometry(gl, x, y);
+
+    gl.uniform2fv(translationLocation, [x, y]);
 
     // setting the color
     gl.uniform4fv(colorLocation, color);
