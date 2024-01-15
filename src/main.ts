@@ -13,11 +13,19 @@ uniform vec2 u_translation;
 // rotaion
 uniform vec2 u_rotation;
 
+// scale
+uniform vec2 u_scale;
+
 // all shaders have a main function
 void main(){
+
   // Rotate the position
-  vec2 rotatedPosition = vec2(a_position.x * u_rotation.y + a_position.y * u_rotation.x,
-                              a_position.y * u_rotation.y - a_position.x * u_rotation.x);  
+  // Scale position
+  vec2 scaledPosition = a_position * u_scale;
+
+  vec2 rotatedPosition = vec2(
+      scaledPosition.x * u_rotation.y + scaledPosition.y * u_rotation.x,
+      scaledPosition.y * u_rotation.y - scaledPosition.x * u_rotation.x);  
 
     // Add in the translation
     vec2 position = rotatedPosition + u_translation; 
@@ -239,6 +247,7 @@ function main() {
   let colorLocation = gl.getUniformLocation(program, "u_color");
   let translationLocation = gl.getUniformLocation(program, "u_translation");
   let rotationLocation = gl.getUniformLocation(program, "u_rotation");
+  let scaleLocation = gl.getUniformLocation(program, "u_scale");
 
   // Buffers -> create a buffer -> bind it -> set buffer data and usage
   let positionBuffer = gl.createBuffer();
@@ -271,8 +280,7 @@ function main() {
   var color = [Math.random(), Math.random(), Math.random(), 1];
 
   // Translation Demo
-  let x = 0;
-  let y = 0;
+  const translation = [0, 0];
 
   const xRange: HTMLInputElement = document.createElement("input");
   xRange.type = "range";
@@ -287,7 +295,7 @@ function main() {
   xRange.style.marginLeft = "8px";
   xRange.addEventListener("input", (e) => {
     xLabel.innerHTML = "x: " + (e.target as HTMLInputElement)?.value;
-    x = parseInt((e.target as HTMLInputElement)?.value);
+    translation[0] = parseInt((e.target as HTMLInputElement)?.value);
     drawScene();
   });
 
@@ -304,7 +312,7 @@ function main() {
   yRange.style.marginLeft = "8px";
   yRange.addEventListener("input", (e) => {
     yLabel.innerHTML = "y: " + (e.target as HTMLInputElement)?.value;
-    y = parseInt((e.target as HTMLInputElement)?.value);
+    translation[1] = parseInt((e.target as HTMLInputElement)?.value);
     drawScene();
   });
 
@@ -342,8 +350,56 @@ function main() {
   rotationControlContainer.appendChild(rotationContainer);
   rotationControlContainer.style.margin = "12px";
 
+  // scale demo
+  let scale = [1, 1];
+
+  const scaleXRange: HTMLInputElement = document.createElement("input");
+  scaleXRange.type = "range";
+  scaleXRange.value = "1.0";
+  scaleXRange.min = "-5.0";
+  scaleXRange.max = "5.0";
+  scaleXRange.step = "0.01";
+  const scaleXLabel = document.createElement("div");
+  scaleXLabel.innerHTML = "x : " + scaleXRange.value;
+  const scaleXContainer = document.createElement("div");
+  scaleXContainer.appendChild(scaleXLabel);
+  scaleXContainer.appendChild(scaleXRange);
+  scaleXContainer.style.display = "flex";
+  scaleXRange.style.marginLeft = "8px";
+  scaleXRange.addEventListener("input", (e) => {
+    scaleXLabel.innerHTML = "x: " + (e.target as HTMLInputElement)?.value;
+    scale[0] = parseFloat((e.target as HTMLInputElement)?.value);
+    drawScene();
+  });
+
+  const scaleYRange: HTMLInputElement = document.createElement("input");
+  scaleYRange.type = "range";
+  scaleYRange.value = "1.0";
+  scaleYRange.min = "-5.0";
+  scaleYRange.max = "5.0";
+  scaleYRange.step = "0.01";
+  const scaleYLabel = document.createElement("div");
+  scaleYLabel.innerHTML = "y : " + scaleYRange.value;
+  const scaleYContainer = document.createElement("div");
+  scaleYContainer.appendChild(scaleYLabel);
+  scaleYContainer.appendChild(scaleYRange);
+  scaleYContainer.style.display = "flex";
+  scaleYRange.style.marginLeft = "8px";
+  scaleYRange.addEventListener("input", (e) => {
+    scaleYLabel.innerHTML = "y: " + (e.target as HTMLInputElement)?.value;
+    scale[1] = parseFloat((e.target as HTMLInputElement)?.value);
+    drawScene();
+  });
+
+  const scaleControlContainer = document.createElement("div");
+  scaleControlContainer.innerHTML = "Scale:";
+  scaleControlContainer.appendChild(scaleXContainer);
+  scaleControlContainer.appendChild(scaleYContainer);
+  scaleControlContainer.style.margin = "12px";
+
   document.querySelector("body")?.appendChild(translationControlContainer);
   document.querySelector("body")?.appendChild(rotationControlContainer);
+  document.querySelector("body")?.appendChild(scaleControlContainer);
 
   // Set Geometry
   setGeometry(gl);
@@ -378,10 +434,13 @@ function main() {
     // setRectangle(gl, x, y, 100, 30);
 
     // set the translation
-    gl.uniform2fv(translationLocation, [x, y]);
+    gl.uniform2fv(translationLocation, translation);
 
     // set the rotation
     gl.uniform2fv(rotationLocation, rotation);
+
+    // set the scale
+    gl.uniform2fv(scaleLocation, scale);
 
     // setting the color
     gl.uniform4fv(colorLocation, color);
