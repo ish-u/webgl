@@ -34,6 +34,18 @@ let m3 = {
   projection: function (width: number, height: number) {
     return [2 / width, 0, 0, 0, -2 / height, 0, -1, 1, 1];
   },
+
+  translate: function (m: number[], tx: number, ty: number) {
+    return m3.multiply(m, m3.translation(tx, ty));
+  },
+
+  rotate: function (m: number[], angleInRadians: number) {
+    return m3.multiply(m, m3.rotation(angleInRadians));
+  },
+
+  scale: function (m: number[], sx: number, sy: number) {
+    return m3.multiply(m, m3.scaling(sx, sy));
+  },
 };
 
 let vertexShaderSource = `#version 300 es
@@ -435,27 +447,16 @@ function main() {
     // bind the attribute/buffer set we want
     gl.bindVertexArray(vao);
 
-    // Trasnformation Matrices
-    let projectionMatrix = m3.projection(
+
+    // Calculating the resulting matrix
+    let matrix = m3.projection(
       (gl.canvas as HTMLCanvasElement).clientWidth,
       (gl.canvas as HTMLCanvasElement)?.clientHeight
     );
-    let translationMatrix = m3.translation(
-      translation[0] + 50,
-      translation[1] + 75
-    );
-    let rotationMatrix = m3.rotation(rotationInRadians);
-    let scaleMatrix = m3.scaling(scale[0], scale[1]);
-    let moveOriginMatrix = m3.translation(-50, -75);
+    matrix = m3.translate(matrix, translation[0], translation[1]);
+    matrix = m3.rotate(matrix, rotationInRadians);
+    matrix = m3.scale(matrix, scale[0], scale[1]);
 
-    let matrix = m3.identify();
-
-    // Calculating the resulting matrix
-    matrix = m3.multiply(matrix, projectionMatrix);
-    matrix = m3.multiply(matrix, translationMatrix);
-    matrix = m3.multiply(matrix, rotationMatrix);
-    matrix = m3.multiply(matrix, scaleMatrix);
-    matrix = m3.multiply(matrix, moveOriginMatrix);
 
     // Setting matrix attribute for shader
     gl.uniformMatrix3fv(matrixLocation, false, matrix);
