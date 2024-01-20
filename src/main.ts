@@ -1,4 +1,37 @@
 import "./style.css";
+
+let m3 = {
+  multiply: function (a: number[], b: number[]) {
+    const c = new Array(9).fill(0);
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        for (let k = 0; k < 3; k++) {
+          c[i * 3 + j] += b[i * 3 + k] * a[k * 3 + j];
+        }
+      }
+    }
+    return c;
+  },
+
+  translation: function (tx: number, ty: number) {
+    return [1, 0, 0, 0, 1, 0, tx, ty, 1];
+  },
+
+  rotation: function (angleInDegress: number) {
+    let c = Math.cos(angleInDegress);
+    let s = Math.sin(angleInDegress);
+    return [c, -s, 0, s, c, 0, 0, 0, 1];
+  },
+
+  scaling: function (sx: number, sy: number) {
+    return [sx, 0, 0, 0, sy, 0, 0, 0, 1];
+  },
+
+  identify: function () {
+    return [1, 0, 0, 0, 1, 0, 0, 0, 1];
+  },
+};
+
 let vertexShaderSource = `#version 300 es
 
 // an attribute is an input (in) to a vertex shader.
@@ -6,29 +39,11 @@ let vertexShaderSource = `#version 300 es
 in vec2 a_position;
 
 uniform vec2 u_resolution;
-
-// translation to add to position
-uniform vec2 u_translation;
-
-// rotaion
-uniform vec2 u_rotation;
-
-// scale
-uniform vec2 u_scale;
+uniform mat3 u_matrix;
 
 // all shaders have a main function
 void main(){
-
-  // Rotate the position
-  // Scale position
-  vec2 scaledPosition = a_position * u_scale;
-
-  vec2 rotatedPosition = vec2(
-      scaledPosition.x * u_rotation.y + scaledPosition.y * u_rotation.x,
-      scaledPosition.y * u_rotation.y - scaledPosition.x * u_rotation.x);  
-
-    // Add in the translation
-    vec2 position = rotatedPosition + u_translation; 
+    vec2 position = (u_matrix * vec3(a_position,1)).xy;
 
     // Convert position from pixels to 0.0 to 1.0
     vec2 zeroToOne = position / u_resolution;
@@ -245,9 +260,7 @@ function main() {
     "u_resolution"
   );
   let colorLocation = gl.getUniformLocation(program, "u_color");
-  let translationLocation = gl.getUniformLocation(program, "u_translation");
-  let rotationLocation = gl.getUniformLocation(program, "u_rotation");
-  let scaleLocation = gl.getUniformLocation(program, "u_scale");
+  let matrixLocation = gl.getUniformLocation(program, "u_matrix");
 
   // Buffers -> create a buffer -> bind it -> set buffer data and usage
   let positionBuffer = gl.createBuffer();
@@ -324,6 +337,7 @@ function main() {
 
   // Rotation demo
   let rotation = [0, 1];
+  let rotationInRadians = 0;
   const rotationRange: HTMLInputElement = document.createElement("input");
   rotationRange.type = "range";
   rotationRange.value = "0";
@@ -340,6 +354,7 @@ function main() {
       "rotation: " + (e.target as HTMLInputElement)?.value;
     const angleInDegress = parseInt((e.target as HTMLInputElement)?.value);
     const angleInRadians = (angleInDegress * Math.PI) / 180;
+    rotationInRadians = angleInRadians;
     rotation[0] = Math.sin(angleInRadians);
     rotation[1] = Math.cos(angleInRadians);
     drawScene();
@@ -430,17 +445,20 @@ function main() {
     // pixels to clip space in the shader
     gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
 
+    // Trasnformation Matrices
+    let translationMatrix = m3.translation(translation[0], translation[1]);
+    let rotationMatrix = m3.rotation(rotationInRadians);
+    let scaleMatrix = m3.scaling(scale[0], scale[1]);
+
+    // Calculating the resulting matrix
+    let matrix = m3.multiply(translationMatrix, rotationMatrix);
+    matrix = m3.multiply(matrix, scaleMatrix);
+
+    // Setting matrix attribute for shader
+    gl.uniformMatrix3fv(matrixLocation, false, matrix);
+
     // // Rectangle
     // setRectangle(gl, x, y, 100, 30);
-
-    // set the translation
-    gl.uniform2fv(translationLocation, translation);
-
-    // set the rotation
-    gl.uniform2fv(rotationLocation, rotation);
-
-    // set the scale
-    gl.uniform2fv(scaleLocation, scale);
 
     // setting the color
     gl.uniform4fv(colorLocation, color);
