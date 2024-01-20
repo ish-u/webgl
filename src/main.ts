@@ -412,9 +412,16 @@ function main() {
   scaleControlContainer.appendChild(scaleYContainer);
   scaleControlContainer.style.margin = "12px";
 
-  document.querySelector("body")?.appendChild(translationControlContainer);
-  document.querySelector("body")?.appendChild(rotationControlContainer);
-  document.querySelector("body")?.appendChild(scaleControlContainer);
+  const controls = document.createElement("div");
+  controls.id = "controls";
+  controls.style.position = "fixed";
+  controls.style.right = "0";
+  controls.style.top = "0";
+
+  controls?.appendChild(translationControlContainer);
+  controls?.appendChild(rotationControlContainer);
+  controls?.appendChild(scaleControlContainer);
+  document.querySelector("body")?.appendChild(controls);
 
   // Set Geometry
   setGeometry(gl);
@@ -450,26 +457,25 @@ function main() {
     let rotationMatrix = m3.rotation(rotationInRadians);
     let scaleMatrix = m3.scaling(scale[0], scale[1]);
 
-    // Calculating the resulting matrix
-    let matrix = m3.multiply(translationMatrix, rotationMatrix);
-    matrix = m3.multiply(matrix, scaleMatrix);
+    let matrix = m3.identify();
+    for (let i = 0; i < 5; i++) {
+      // Calculating the resulting matrix
+      matrix = m3.multiply(matrix, translationMatrix);
+      matrix = m3.multiply(matrix, rotationMatrix);
+      matrix = m3.multiply(matrix, scaleMatrix);
 
-    // Setting matrix attribute for shader
-    gl.uniformMatrix3fv(matrixLocation, false, matrix);
+      // Setting matrix attribute for shader
+      gl.uniformMatrix3fv(matrixLocation, false, matrix);
 
-    // // Rectangle
-    // setRectangle(gl, x, y, 100, 30);
+      // setting the color
+      gl.uniform4fv(colorLocation, color);
 
-    // setting the color
-    gl.uniform4fv(colorLocation, color);
-
-    // execute program
-    let primitiveType = gl.TRIANGLES;
-    let offset = 0;
-    let count = 18;
-    gl.drawArrays(primitiveType, offset, count);
-
-    // drawRectangles(gl, colorLocation);
+      // execute program - Draw geomertry
+      let primitiveType = gl.TRIANGLES;
+      let offset = 0;
+      let count = 18;
+      gl.drawArrays(primitiveType, offset, count);
+    }
   }
 }
 
