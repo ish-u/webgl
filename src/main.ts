@@ -30,6 +30,10 @@ let m3 = {
   identify: function () {
     return [1, 0, 0, 0, 1, 0, 0, 0, 1];
   },
+
+  projection: function (width: number, height: number) {
+    return [2 / width, 0, 0, 0, -2 / height, 0, -1, 1, 1];
+  },
 };
 
 let vertexShaderSource = `#version 300 es
@@ -38,25 +42,12 @@ let vertexShaderSource = `#version 300 es
 // It will recieve data from a buffer
 in vec2 a_position;
 
-uniform vec2 u_resolution;
 uniform mat3 u_matrix;
 
 // all shaders have a main function
 void main(){
-    vec2 position = (u_matrix * vec3(a_position,1)).xy;
 
-    // Convert position from pixels to 0.0 to 1.0
-    vec2 zeroToOne = position / u_resolution;
-    
-    // Convert from 0->1 to 0->2
-    vec2 zeroToTwo = zeroToOne * 2.0;
-
-    // Convert from 0->2 to -1->+1 (clip space)
-    vec2 clipSpace = zeroToTwo - 1.0;
-  
-    // gl_Position is a special variable a vertex shader
-    // is responsible for setting
-    gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+    gl_Position = vec4((u_matrix * vec3(a_position,1)).xy, 0, 1);
 }
 `;
 
@@ -255,10 +246,6 @@ function main() {
 
   // Attributes
   let positionAttributeLocation = gl.getAttribLocation(program, "a_position");
-  let resolutionUniformLocation = gl.getUniformLocation(
-    program,
-    "u_resolution"
-  );
   let colorLocation = gl.getUniformLocation(program, "u_color");
   let matrixLocation = gl.getUniformLocation(program, "u_matrix");
 
@@ -448,34 +435,39 @@ function main() {
     // bind the attribute/buffer set we want
     gl.bindVertexArray(vao);
 
-    // Pass in the canvas resolution so we can convert from
-    // pixels to clip space in the shader
-    gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
-
     // Trasnformation Matrices
-    let translationMatrix = m3.translation(translation[0], translation[1]);
+    let projectionMatrix = m3.projection(
+      (gl.canvas as HTMLCanvasElement).clientWidth,
+      (gl.canvas as HTMLCanvasElement)?.clientHeight
+    );
+    let translationMatrix = m3.translation(
+      translation[0] + 50,
+      translation[1] + 75
+    );
     let rotationMatrix = m3.rotation(rotationInRadians);
     let scaleMatrix = m3.scaling(scale[0], scale[1]);
+    let moveOriginMatrix = m3.translation(-50, -75);
 
     let matrix = m3.identify();
-    for (let i = 0; i < 5; i++) {
-      // Calculating the resulting matrix
-      matrix = m3.multiply(matrix, translationMatrix);
-      matrix = m3.multiply(matrix, rotationMatrix);
-      matrix = m3.multiply(matrix, scaleMatrix);
 
-      // Setting matrix attribute for shader
-      gl.uniformMatrix3fv(matrixLocation, false, matrix);
+    // Calculating the resulting matrix
+    matrix = m3.multiply(matrix, projectionMatrix);
+    matrix = m3.multiply(matrix, translationMatrix);
+    matrix = m3.multiply(matrix, rotationMatrix);
+    matrix = m3.multiply(matrix, scaleMatrix);
+    matrix = m3.multiply(matrix, moveOriginMatrix);
 
-      // setting the color
-      gl.uniform4fv(colorLocation, color);
+    // Setting matrix attribute for shader
+    gl.uniformMatrix3fv(matrixLocation, false, matrix);
 
-      // execute program - Draw geomertry
-      let primitiveType = gl.TRIANGLES;
-      let offset = 0;
-      let count = 18;
-      gl.drawArrays(primitiveType, offset, count);
-    }
+    // setting the color
+    gl.uniform4fv(colorLocation, color);
+
+    // execute program - Draw geomertry
+    let primitiveType = gl.TRIANGLES;
+    let offset = 0;
+    let count = 18;
+    gl.drawArrays(primitiveType, offset, count);
   }
 }
 
